@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bobo Si Pintar</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--sky:#bfe8ff;--grass:#7bd88f;--sun:#ffc93c;--berry:#ff5c8a;--ink:#2b2d5b;--white:#fff;--ok:#2fbf71;--bad:#ff5c5c}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font-family:"Baloo 2","Trebuchet MS","Comic Sans MS",sans-serif;color:var(--ink);background:linear-gradient(var(--sky) 0 72%,var(--grass) 72%);display:flex;justify-content:center;overflow-x:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+#app{width:100%;max-width:480px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;min-height:100%}
+.screen{display:none;width:100%;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.screen.on{display:flex}
+h1{font-size:2.4rem;margin:0;line-height:1;font-weight:800}
+p{margin:0;font-size:1.1rem}
+#pet{font-size:7rem;line-height:1;filter:drop-shadow(0 8px 0 rgba(43,45,91,.15));transition:transform .2s;cursor:pointer;user-select:none}
+#pet.hop{animation:hop .5s}
+#pet.sad{animation:shake .4s}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-34px) scale(1.12)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+.bar{width:100%;height:16px;background:rgba(255,255,255,.7);border-radius:99px;overflow:hidden;border:3px solid var(--ink)}
+.bar i{display:block;height:100%;width:0;background:var(--berry);transition:width .4s}
+.btn{font:inherit;font-weight:800;font-size:1.35rem;color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:18px;padding:12px 18px;width:100%;box-shadow:0 6px 0 var(--ink);cursor:pointer;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+.btn.alt{background:var(--white)}
+.btn.pink{background:var(--berry);color:#fff}
+.btn:focus-visible{outline:4px solid var(--berry);outline-offset:3px}
+.hud{width:100%;display:flex;justify-content:space-between;font-weight:800;font-size:1.2rem}
+.card{background:var(--white);border:3px solid var(--ink);border-radius:24px;padding:16px;width:100%;box-shadow:0 6px 0 var(--ink)}
+#q{font-size:2.6rem;font-weight:800;margin:4px 0}
+#qe{font-size:5rem;line-height:1}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.opts .btn{font-size:1.7rem;padding:18px 8px;background:var(--white)}
+.opts .btn.right{background:var(--ok);color:#fff}
+.opts .btn.wrong{background:var(--bad);color:#fff}
+.stars{font-size:3rem;letter-spacing:6px}
+#fx{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#fx span{position:absolute;top:-40px;font-size:2rem;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+.small{font-size:.95rem;opacity:.75}
+@media (prefers-reduced-motion:reduce){#pet.hop,#pet.sad{animation:none}#fx{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<section class="screen on" id="menu">
+  <h1>Bobo Si Pintar</h1>
+  <p id="petName"></p>
+  <div id="pet" role="img" aria-label="Bobo" tabindex="0">🥚</div>
+  <div class="bar" aria-label="Menuju evolusi"><i id="evo"></i></div>
+  <p class="small" id="evoText"></p>
+  <button class="btn" data-mode="math">🔢 Hitung Cepat</button>
+  <button class="btn pink" data-mode="eng">🔤 Tebak Bahasa Inggris</button>
+  <p class="small">Jawab benar untuk memberi makan Bobo. Beri makan terus sampai Bobo berevolusi jadi naga! 🐲</p>
+  <p class="small" id="best"></p>
+</section>
+
+<section class="screen" id="play">
+  <div class="hud"><span id="hearts"></span><span id="prog"></span><span id="score"></span></div>
+  <div class="card">
+    <div id="qe"></div>
+    <div id="q"></div>
+    <p id="hint" class="small"></p>
+  </div>
+  <div class="opts" id="opts"></div>
+  <div id="pet2" style="font-size:3.5rem">🥚</div>
+</section>
+
+<section class="screen" id="end">
+  <h1 id="endTitle">Hebat!</h1>
+  <div class="stars" id="stars"></div>
+  <div id="pet3" style="font-size:6rem">🐣</div>
+  <p id="endText"></p>
+  <button class="btn" id="again">▶ Main lagi</button>
+  <button class="btn pink" id="share">📤 Pamerkan skor</button>
+  <button class="btn alt" id="home">🏠 Rumah Bobo</button>
+</section>
+
+</div>
+<div id="fx" aria-hidden="true"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const STAGES=[['🥚','Telur Bobo'],['🐣','Bobo Menetas'],['🐥','Bobo Kecil'],['🦆','Bobo Bebek'],['🦜','Bobo Burung Beo'],['🦄','Bobo Unicorn'],['🐲','Bobo Naga Super']];
+const PER=10;
+const VOCAB=[['🐱','cat','kucing'],['🐶','dog','anjing'],['🐟','fish','ikan'],['🐘','elephant','gajah'],['🐒','monkey','monyet'],['🐴','horse','kuda'],['🐮','cow','sapi'],['🐔','chicken','ayam'],['🍎','apple','apel'],['🍌','banana','pisang'],['🍇','grapes','anggur'],['🍉','watermelon','semangka'],['🚗','car','mobil'],['✈️','airplane','pesawat'],['🚲','bicycle','sepeda'],['🏠','house','rumah'],['🌞','sun','matahari'],['🌙','moon','bulan'],['⭐','star','bintang'],['🌳','tree','pohon'],['🌸','flower','bunga'],['📚','book','buku'],['⚽','ball','bola'],['🍞','bread','roti'],['🥛','milk','susu'],['👁️','eye','mata'],['🦷','tooth','gigi'],['🐢','turtle','kura-kura']];
+
+let S={total:0,best:0};
+try{Object.assign(S,JSON.parse(localStorage.getItem('bobo-v1')||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem('bobo-v1',JSON.stringify(S))}catch(e){}};
+const stageOf=t=>Math.min(Math.floor(t/PER),STAGES.length-1);
+
+/* suara */
+let ac;
+function tone(f,d=.15,t='sine',at=0){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.18,ac.currentTime+at);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+at+d);o.connect(g).connect(ac.destination);o.start(ac.currentTime+at);o.stop(ac.currentTime+at+d)}catch(e){}}
+const good=()=>{tone(660,.12,'triangle');tone(880,.18,'triangle',.1)};
+const bad=()=>{tone(220,.25,'sawtooth')};
+const win=()=>[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',i*.12));
+function say(w){try{const u=new SpeechSynthesisUtterance(w);u.lang='en-US';u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+
+function confetti(list=['🎉','⭐','✨','🎈','💖']){const fx=$('#fx');for(let i=0;i<26;i++){const s=document.createElement('span');s.textContent=list[i%list.length];s.style.left=Math.random()*100+'vw';s.style.animationDuration=(2+Math.random()*2)+'s';fx.appendChild(s);setTimeout(()=>s.remove(),4200)}}
+
+function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===id))}
+
+function renderPet(){
+  const st=stageOf(S.total);
+  $('#pet').textContent=STAGES[st][0];$('#pet2').textContent=STAGES[st][0];
+  $('#petName').textContent=STAGES[st][1];
+  const last=st===STAGES.length-1;
+  $('#evo').style.width=(last?100:(S.total%PER)/PER*100)+'%';
+  $('#evoText').textContent=last?'Bobo sudah jadi naga super! 🎉':`${PER-(S.total%PER)} makanan lagi untuk evolusi`;
+  $('#best').textContent=S.best?`Skor terbaik: ${S.best} ⭐`:'';
+}
+function hop(el,cls='hop'){el.classList.remove('hop','sad');void el.offsetWidth;el.classList.add(cls)}
+
+/* game */
+let mode,q,hearts,score,streak,n,locked,startStage;
+const ROUND=10;
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);
+
+function makeMath(){
+  const lvl=Math.min(1+Math.floor(n/3)+Math.floor(S.total/20),6);
+  const ops=lvl>=3?['+','-','×']:['+','-'];
+  const op=ops[rnd(0,ops.length-1)];
+  let a,b,ans;
+  if(op==='×'){a=rnd(2,lvl+3);b=rnd(2,lvl+3);ans=a*b}
+  else{const m=5+lvl*5;a=rnd(1,m);b=rnd(1,m);if(op==='-'&&b>a)[a,b]=[b,a];ans=op==='+'?a+b:a-b}
+  const set=new Set([ans]);
+  while(set.size<4){const v=ans+rnd(-6,6);if(v>=0)set.add(v)}
+  return{e:'🧮',t:`${a} ${op} ${b} = ?`,hint:'Pilih jawaban yang benar',opts:shuffle([...set]).map(String),ans:String(ans)};
+}
+function makeEng(){
+  const it=VOCAB[rnd(0,VOCAB.length-1)];
+  const others=shuffle(VOCAB.filter(v=>v!==it)).slice(0,3).map(v=>v[1]);
+  return{e:it[0],t:'?',hint:`Bahasa Inggris dari "${it[2]}"`,opts:shuffle([it[1],...others]),ans:it[1],say:it[1]};
+}
+function next(){
+  if(n>=ROUND||hearts<=0)return end();
+  q=mode==='math'?makeMath():makeEng();
+  $('#qe').textContent=q.e;$('#q').textContent=q.t;$('#hint').textContent=q.hint;
+  const o=$('#opts');o.innerHTML='';
+  q.opts.forEach(v=>{const b=document.createElement('button');b.className='btn';b.textContent=v;b.onclick=()=>pick(b,v);o.appendChild(b)});
+  $('#prog').textContent=`${n+1}/${ROUND}`;
+  locked=false;
+}
+function hud(){$('#hearts').textContent='❤️'.repeat(hearts)+'🤍'.repeat(3-hearts);$('#score').textContent='⭐ '+score}
+function pick(b,v){
+  if(locked)return;locked=true;
+  if(v===q.ans){
+    b.classList.add('right');good();streak++;score+=10+Math.min(streak,5);S.total++;n++;
+    if(q.say)say(q.say);
+    renderPet();hop($('#pet2'));
+    if(S.total%PER===0&&stageOf(S.total)>stageOf(S.total-1)){confetti();win()}
+  }else{
+    b.classList.add('wrong');bad();hearts--;streak=0;n++;hop($('#pet2'),'sad');
+    [...$('#opts').children].forEach(x=>{if(x.textContent===q.ans)x.classList.add('right')});
+  }
+  hud();save();
+  setTimeout(next,mode==='eng'&&v===q.ans?1100:900);
+}
+function start(m){
+  mode=m;hearts=3;score=0;streak=0;n=0;startStage=stageOf(S.total);
+  hud();show('play');next();
+}
+function end(){
+  if(score>S.best){S.best=score;save()}
+  const stars=score>=110?3:score>=70?2:1;
+  $('#stars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);
+  $('#endTitle').textContent=hearts>0?'Hebat sekali!':'Ayo coba lagi!';
+  const evolved=stageOf(S.total)>startStage;
+  $('#endText').textContent=`Skor ${score}. ${evolved?'Bobo berevolusi jadi '+STAGES[stageOf(S.total)][1]+'! 🎉':'Bobo kenyang dan senang!'}`;
+  $('#pet3').textContent=STAGES[stageOf(S.total)][0];
+  show('end');hearts>0?(confetti(),win()):0;renderPet();
+}
+
+/* tombol */
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>start(b.dataset.mode));
+$('#again').onclick=()=>start(mode);
+$('#home').onclick=()=>{renderPet();show('menu')};
+$('#pet').onclick=()=>{hop($('#pet'));tone(520,.1,'triangle')};
+$('#share').onclick=async()=>{
+  const t=`Aku dapat skor ${score} di Bobo Si Pintar dan Bobo-ku sudah jadi ${STAGES[stageOf(S.total)][1]} ${STAGES[stageOf(S.total)][0]}! Bisa kalahkan aku?`;
+  try{if(navigator.share)await navigator.share({title:'Bobo Si Pintar',text:t});else{await navigator.clipboard.writeText(t);$('#share').textContent='✅ Tersalin!'}}catch(e){}
+};
+renderPet();
+</script>
+</body>
+</html>
